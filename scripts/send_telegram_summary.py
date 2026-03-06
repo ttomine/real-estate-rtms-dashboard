@@ -41,13 +41,6 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def fmt_manwon(value: float | int | None) -> str:
-    if value is None:
-        return "-"
-    v = float(value)
-    return f"{v/10000:.2f}억 ({int(round(v)):,}만원)"
-
-
 def fmt_pct(value: float | int | None) -> str:
     if value is None:
         return "-"
@@ -56,29 +49,29 @@ def fmt_pct(value: float | int | None) -> str:
 
 def build_message(payload: dict) -> str:
     summary = payload.get("summary", {})
-    rankings = payload.get("rankings", {})
-    top_trade = rankings.get("topTradeCount", [])[:3]
-    top_ratio = rankings.get("topJeonseRatio", [])[:3]
+    sigungu = payload.get("sigungu", {})
+    top_growth = sigungu.get("top20MoM", [])[:3]
 
-    lines = []
-    lines.append("부동산 실거래 아침 업데이트")
-    lines.append(f"업데이트: {summary.get('generatedAt', '-')}")
-    lines.append(f"수집월: {', '.join(summary.get('months', []))}")
-    lines.append(
-        f"매매 {summary.get('tradeCount', 0):,}건 | 전월세 {summary.get('rentCount', 0):,}건 | 지역 {summary.get('regionCount', 0):,}개"
-    )
-    lines.append("")
-    lines.append("[매매 거래량 상위 3]")
-    for idx, row in enumerate(top_trade, start=1):
+    recent3_labels = summary.get("recent3MonthLabels", [])
+    recent3_text = ", ".join(recent3_labels) if recent3_labels else "-"
+
+    lines = [
+        "부동산 실거래 아침 업데이트",
+        f"업데이트: {summary.get('generatedAt', '-')}",
+        f"기준월(최근 3개월): {recent3_text}",
+        (
+            f"매매 {summary.get('tradeCount', 0):,}건 | "
+            f"전월세 {summary.get('rentCount', 0):,}건 | "
+            f"시군구 {summary.get('coverage', {}).get('sigunguCount', 0):,}개"
+        ),
+        "",
+        "[시군구 전월대비 증가율 TOP 3]",
+    ]
+
+    for idx, row in enumerate(top_growth, start=1):
         lines.append(
-            f"{idx}. {row.get('regionName', row.get('regionCode', '-'))} - {row.get('tradeCount', 0):,}건"
-        )
-    lines.append("")
-    lines.append("[전세가율 상위 3]")
-    for idx, row in enumerate(top_ratio, start=1):
-        lines.append(
-            f"{idx}. {row.get('regionName', row.get('regionCode', '-'))} - {fmt_pct(row.get('jeonseRatioPct'))} "
-            f"(매매중앙값 {fmt_manwon(row.get('medianTradeManwon'))})"
+            f"{idx}. {row.get('sigunguName', row.get('sggCd', '-'))} - "
+            f"{fmt_pct(row.get('momRatePct'))} ({row.get('momDelta', 0):+,}건)"
         )
     return "\n".join(lines)
 

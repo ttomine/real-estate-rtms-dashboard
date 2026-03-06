@@ -1,6 +1,6 @@
 param(
-  [int]$Months = 2,
-  [string]$LawdCodesFile = "config/lawd_codes_seoul.csv"
+  [int]$Months = 12,
+  [string]$LawdCodesFile = "config/lawd_codes_seoul_incheon.csv"
 )
 
 if (-not $env:DATA_GO_KR_SERVICE_KEY) {
@@ -18,7 +18,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 python scripts/build_dashboard_data.py `
   --input .tmp/raw_rtms.json `
-  --output docs/data/dashboard.json
+  --output docs/data/dashboard.json `
+  --top-n 20
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "완료: docs/data/dashboard.json 갱신"

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
@@ -36,13 +36,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--lawd-codes-file",
-        default="config/lawd_codes_seoul.csv",
+        default="config/lawd_codes_seoul_incheon.csv",
         help="CSV file: LAWD_CD,지역명",
     )
     parser.add_argument(
         "--months",
         type=int,
-        default=2,
+        default=12,
         help="How many recent months to fetch (KST 기준).",
     )
     parser.add_argument(
@@ -296,3 +296,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

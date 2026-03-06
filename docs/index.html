@@ -3,18 +3,19 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>실거래 분석 대시보드 (MVP)</title>
-  <meta name="description" content="아파트 매매/전세 실거래 비교 지표 대시보드" />
+  <title>부동산 분석 대시보드</title>
+  <meta name="description" content="아파트 실거래 분석 대시보드 (전국/시군구/법정동/단지별)" />
   <style>
     :root {
-      --bg: #f6f9fc;
+      --bg: #f5f7fb;
       --surface: #ffffff;
-      --ink: #122433;
-      --muted: #62788e;
-      --line: #d6e1ea;
-      --accent: #005f73;
-      --accent-2: #0a9396;
-      --warn: #bb3e03;
+      --ink: #10243a;
+      --muted: #627a92;
+      --line: #d9e3ec;
+      --primary: #0d4f8b;
+      --primary-2: #2d7db9;
+      --success: #197447;
+      --danger: #c0392b;
     }
     * { box-sizing: border-box; }
     body {
@@ -22,272 +23,495 @@
       font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
       color: var(--ink);
       background:
-        radial-gradient(1200px 600px at 10% -20%, #d9eef2 0%, transparent 60%),
-        radial-gradient(1000px 500px at 110% 10%, #e8f3d5 0%, transparent 50%),
+        radial-gradient(1200px 600px at -10% -25%, #dcecf8 0%, transparent 62%),
+        radial-gradient(900px 500px at 110% 0%, #e8f5df 0%, transparent 50%),
         var(--bg);
     }
     .wrap {
-      width: min(1120px, 92vw);
-      margin: 24px auto 64px;
+      width: min(1320px, 94vw);
+      margin: 18px auto 60px;
     }
     .hero {
-      background: linear-gradient(120deg, var(--accent), var(--accent-2));
-      color: #fff;
       border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(5, 40, 60, 0.2);
+      padding: 20px 22px;
+      color: #fff;
+      background: linear-gradient(120deg, var(--primary), var(--primary-2));
+      box-shadow: 0 10px 30px rgba(16, 36, 58, 0.2);
     }
     .hero h1 {
       margin: 0;
-      font-size: clamp(22px, 3vw, 34px);
+      font-size: clamp(22px, 2.6vw, 34px);
       letter-spacing: -0.02em;
     }
     .hero p {
-      margin: 10px 0 0;
+      margin: 8px 0 0;
       opacity: 0.92;
+      font-size: 14px;
     }
-    .grid {
-      margin-top: 18px;
+    .menu {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .menu button {
+      border: 1px solid #c6d4e0;
+      background: #fff;
+      color: #24445f;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .menu button.active {
+      border-color: var(--primary);
+      background: #eaf3fb;
+      color: #093f70;
+    }
+    .stats {
+      margin-top: 14px;
       display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
     }
     .card {
       background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px 16px;
-      box-shadow: 0 5px 14px rgba(17, 28, 40, 0.05);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 12px rgba(14, 30, 45, 0.06);
     }
-    .label {
-      color: var(--muted);
+    .card .k { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .card .v { font-weight: 800; font-size: 22px; letter-spacing: -0.02em; }
+    .notice {
+      margin-top: 12px;
       font-size: 13px;
-      margin-bottom: 6px;
+      color: #23415d;
+      background: #ebf5ff;
+      border: 1px solid #d2e8ff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      line-height: 1.5;
     }
-    .value {
-      font-weight: 800;
-      font-size: 24px;
-      letter-spacing: -0.02em;
+    .view {
+      margin-top: 18px;
+      display: none;
+      gap: 12px;
     }
-    .section {
-      margin-top: 26px;
+    .view.active { display: grid; }
+    .block {
       background: var(--surface);
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(14, 30, 45, 0.06);
       overflow: hidden;
-      box-shadow: 0 5px 14px rgba(17, 28, 40, 0.05);
     }
-    .section h2 {
+    .block h2 {
       margin: 0;
-      padding: 14px 16px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--line);
-      font-size: 18px;
-      background: #f9fcfe;
+      background: #f8fbfe;
+      font-size: 17px;
     }
+    .canvas-wrap { padding: 10px 14px 14px; }
+    .canvas-wrap canvas { width: 100%; max-height: 360px; }
     .table-wrap { overflow-x: auto; }
     table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 860px;
       font-size: 14px;
-      min-width: 720px;
     }
     th, td {
-      padding: 11px 12px;
-      border-bottom: 1px solid #edf3f7;
+      padding: 10px 10px;
+      border-bottom: 1px solid #edf2f7;
       text-align: right;
       white-space: nowrap;
     }
     th:first-child, td:first-child { text-align: left; }
-    tbody tr:hover { background: #f7fbff; }
-    .hint {
+    tbody tr:hover { background: #f8fbff; }
+    .delta-up { color: var(--success); font-weight: 700; }
+    .delta-down { color: var(--danger); font-weight: 700; }
+    .footer-note {
       color: var(--muted);
-      font-size: 13px;
-      padding: 12px 16px;
-      line-height: 1.5;
+      font-size: 12px;
+      padding: 8px 12px 12px;
     }
-    .error {
-      margin-top: 12px;
-      padding: 12px 14px;
-      border-radius: 10px;
-      background: #fff2eb;
-      color: var(--warn);
-      border: 1px solid #ffd5bf;
-      display: none;
-    }
-    @media (max-width: 900px) {
-      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (max-width: 1080px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 560px) {
-      .grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <main class="wrap">
     <section class="hero">
-      <h1>아파트 매매·전세 실거래 비교 대시보드</h1>
-      <p id="updatedAt">데이터를 불러오는 중...</p>
+      <h1>아파트 실거래 분석 대시보드</h1>
+      <p id="updatedAt">데이터 로딩 중...</p>
     </section>
 
-    <section class="grid">
-      <article class="card"><div class="label">매매 거래 수</div><div class="value" id="tradeCount">-</div></article>
-      <article class="card"><div class="label">전월세 거래 수</div><div class="value" id="rentCount">-</div></article>
-      <article class="card"><div class="label">비교 지역 수</div><div class="value" id="regionCount">-</div></article>
-      <article class="card"><div class="label">수집 기간(월)</div><div class="value" id="months">-</div></article>
+    <nav class="menu" id="menuTabs">
+      <button class="active" data-tab="national">1. 전국</button>
+      <button data-tab="sigungu">2. 시군구</button>
+      <button data-tab="umd">3. 법정동</button>
+      <button data-tab="complex">4. 단지별</button>
+    </nav>
+
+    <section class="stats">
+      <article class="card"><div class="k">매매 실거래 수</div><div class="v" id="tradeCount">-</div></article>
+      <article class="card"><div class="k">전월세 수집 수</div><div class="v" id="rentCount">-</div></article>
+      <article class="card"><div class="k">시군구 수</div><div class="v" id="sigunguCount">-</div></article>
+      <article class="card"><div class="k">법정동 수</div><div class="v" id="umdCount">-</div></article>
+      <article class="card"><div class="k">단지 수</div><div class="v" id="complexCount">-</div></article>
     </section>
 
-    <div class="error" id="errorBox"></div>
+    <section class="notice" id="coverageNote">샘플 범위 확인 중...</section>
 
-    <section class="section">
-      <h2>지역 비교(매매/전세)</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>지역</th>
-              <th>매매건수</th>
-              <th>전세건수</th>
-              <th>매매 중앙값</th>
-              <th>전세 중앙값</th>
-              <th>전세가율</th>
-            </tr>
-          </thead>
-          <tbody id="regionRows"></tbody>
-        </table>
-      </div>
+    <section class="view active" data-view="national">
+      <article class="block">
+        <h2>전국 아파트 월별 거래량 (최근 3개년)</h2>
+        <div class="canvas-wrap"><canvas id="nationalTrendChart"></canvas></div>
+      </article>
+      <article class="block">
+        <h2>시도별 최근 3개월 거래량 및 전월 대비</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>시도</th>
+                <th id="nationalM1"></th>
+                <th id="nationalM2"></th>
+                <th id="nationalM3"></th>
+                <th>전월대비 증감</th>
+                <th>전월대비 증감률</th>
+              </tr>
+            </thead>
+            <tbody id="nationalRows"></tbody>
+          </table>
+        </div>
+      </article>
     </section>
 
-    <section class="section">
-      <h2>전세가율 상위(표본충분 지역)</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>지역</th>
-              <th>전세가율</th>
-              <th>매매건수</th>
-              <th>전세건수</th>
-              <th>매매 중앙값</th>
-            </tr>
-          </thead>
-          <tbody id="ratioRows"></tbody>
-        </table>
-      </div>
+    <section class="view" data-view="sigungu">
+      <article class="block">
+        <h2>시군구 전월대비 증가율 TOP 20</h2>
+        <div class="canvas-wrap"><canvas id="sigunguTopChart"></canvas></div>
+      </article>
+      <article class="block">
+        <h2>전체 시군구 최근 3개월 거래량 및 전월 대비</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>시군구</th>
+                <th>시도</th>
+                <th id="sigunguM1"></th>
+                <th id="sigunguM2"></th>
+                <th id="sigunguM3"></th>
+                <th>전월대비 증감</th>
+                <th>전월대비 증감률</th>
+              </tr>
+            </thead>
+            <tbody id="sigunguRows"></tbody>
+          </table>
+        </div>
+        <div class="footer-note" id="sigunguFoot"></div>
+      </article>
     </section>
 
-    <section class="section">
-      <h2>최신 매매 체결(상위 20)</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>체결일</th>
-              <th>지역</th>
-              <th>단지명</th>
-              <th>전용면적</th>
-              <th>거래금액</th>
-            </tr>
-          </thead>
-          <tbody id="latestTradeRows"></tbody>
-        </table>
-      </div>
-      <div class="hint">단위: 금액은 만원 기준이며, 화면에서는 억/만원으로 함께 표시됩니다.</div>
+    <section class="view" data-view="umd">
+      <article class="block">
+        <h2>법정동 전월대비 증가율 TOP 20</h2>
+        <div class="canvas-wrap"><canvas id="umdTopChart"></canvas></div>
+      </article>
+      <article class="block">
+        <h2>전체 법정동 최근 3개월 거래량 및 전월 대비</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>법정동</th>
+                <th>시군구</th>
+                <th id="umdM1"></th>
+                <th id="umdM2"></th>
+                <th id="umdM3"></th>
+                <th>전월대비 증감</th>
+                <th>전월대비 증감률</th>
+              </tr>
+            </thead>
+            <tbody id="umdRows"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="view" data-view="complex">
+      <article class="block">
+        <h2>단지별 전월대비 증가율 TOP 20</h2>
+        <div class="canvas-wrap"><canvas id="complexTopChart"></canvas></div>
+      </article>
+      <article class="block">
+        <h2>전체 단지 최근 3개월 거래량 및 전월 대비</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>단지명</th>
+                <th>시군구</th>
+                <th>법정동</th>
+                <th id="complexM1"></th>
+                <th id="complexM2"></th>
+                <th id="complexM3"></th>
+                <th>전월대비 증감</th>
+                <th>전월대비 증감률</th>
+              </tr>
+            </thead>
+            <tbody id="complexRows"></tbody>
+          </table>
+        </div>
+        <div class="footer-note" id="complexFoot"></div>
+      </article>
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script>
     const fmt = new Intl.NumberFormat("ko-KR");
+    const chartState = {};
 
-    function fmtManwon(v) {
-      if (v === null || v === undefined || Number.isNaN(v)) return "-";
-      const eok = (Number(v) / 10000);
-      return `${eok.toFixed(2)}억 (${fmt.format(Math.round(v))}만원)`;
+    function fmtPct(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "-";
+      return `${Number(value).toFixed(1)}%`;
     }
 
-    function fmtPct(v) {
-      if (v === null || v === undefined || Number.isNaN(v)) return "-";
-      return `${Number(v).toFixed(1)}%`;
+    function fmtDelta(value) {
+      const v = Number(value || 0);
+      const cls = v > 0 ? "delta-up" : (v < 0 ? "delta-down" : "");
+      const text = `${v > 0 ? "+" : ""}${fmt.format(v)}`;
+      return `<span class="${cls}">${text}</span>`;
     }
 
-    function cell(text) {
-      const td = document.createElement("td");
-      td.textContent = text;
-      return td;
+    function setRecentMonthHeaders(summary) {
+      const labels = summary.recent3MonthLabels || [];
+      const [m1, m2, m3] = labels.length === 3 ? labels : ["M-2", "M-1", "M"];
+      const ids = [
+        "nationalM1","nationalM2","nationalM3",
+        "sigunguM1","sigunguM2","sigunguM3",
+        "umdM1","umdM2","umdM3",
+        "complexM1","complexM2","complexM3"
+      ];
+      const vals = [m1,m2,m3,m1,m2,m3,m1,m2,m3,m1,m2,m3];
+      ids.forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = vals[idx];
+      });
     }
 
-    function appendRows(targetId, rows, mapper, maxRows = 20) {
-      const target = document.getElementById(targetId);
-      target.innerHTML = "";
-      rows.slice(0, maxRows).forEach((r) => {
-        const tr = document.createElement("tr");
-        mapper(r).forEach((txt) => tr.appendChild(cell(txt)));
-        target.appendChild(tr);
+    function renderTableRows(targetId, rowsHtml) {
+      const el = document.getElementById(targetId);
+      el.innerHTML = rowsHtml.join("");
+    }
+
+    function makeTopBarChart(canvasId, labels, values, title) {
+      const canvas = document.getElementById(canvasId);
+      if (chartState[canvasId]) chartState[canvasId].destroy();
+      chartState[canvasId] = new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: title,
+            data: values,
+            backgroundColor: values.map(v => v >= 0 ? "#2d7db9" : "#c0392b")
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.formattedValue}%`
+              }
+            }
+          },
+          scales: {
+            y: {
+              ticks: { callback: (v) => `${v}%` }
+            }
+          }
+        }
+      });
+    }
+
+    function renderNationalTrend(trend) {
+      const canvasId = "nationalTrendChart";
+      if (chartState[canvasId]) chartState[canvasId].destroy();
+      const colors = ["#2f63b8", "#ee7f2d", "#7a7a7a"];
+      const datasets = (trend.series || []).map((s, idx) => ({
+        label: String(s.year),
+        data: s.values || [],
+        borderColor: colors[idx % colors.length],
+        backgroundColor: colors[idx % colors.length],
+        fill: false,
+        tension: 0.25
+      }));
+      chartState[canvasId] = new Chart(document.getElementById(canvasId), {
+        type: "line",
+        data: {
+          labels: trend.monthLabels || [],
+          datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "top" } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function renderNationalTable(rows) {
+      const html = rows.map((r) => `
+        <tr>
+          <td>${r.sidoName || "-"}</td>
+          <td>${fmt.format(r.m1 || 0)}</td>
+          <td>${fmt.format(r.m2 || 0)}</td>
+          <td>${fmt.format(r.m3 || 0)}</td>
+          <td>${fmtDelta(r.momDelta)}</td>
+          <td>${fmtPct(r.momRatePct)}</td>
+        </tr>
+      `);
+      renderTableRows("nationalRows", html);
+    }
+
+    function renderSigungu(data) {
+      const top = data.top20MoM || [];
+      makeTopBarChart(
+        "sigunguTopChart",
+        top.map((r) => r.sigunguName || r.sggCd || "-"),
+        top.map((r) => Number(r.momRatePct || 0)),
+        "전월대비 증가율"
+      );
+      const html = (data.recent3mTable || []).map((r) => `
+        <tr>
+          <td>${r.sigunguName || "-"}</td>
+          <td>${r.sidoName || "-"}</td>
+          <td>${fmt.format(r.m1 || 0)}</td>
+          <td>${fmt.format(r.m2 || 0)}</td>
+          <td>${fmt.format(r.m3 || 0)}</td>
+          <td>${fmtDelta(r.momDelta)}</td>
+          <td>${fmtPct(r.momRatePct)}</td>
+        </tr>
+      `);
+      renderTableRows("sigunguRows", html);
+      document.getElementById("sigunguFoot").textContent =
+        `현재 테이블 행 수: ${(data.recent3mTable || []).length.toLocaleString("ko-KR")}개`;
+    }
+
+    function renderUmd(data) {
+      const top = data.top20MoM || [];
+      makeTopBarChart(
+        "umdTopChart",
+        top.map((r) => `${r.umdName || "-"} (${(r.sigunguName || "").replace("서울 ", "").replace("인천 ", "")})`),
+        top.map((r) => Number(r.momRatePct || 0)),
+        "전월대비 증가율"
+      );
+      const html = (data.recent3mTable || []).map((r) => `
+        <tr>
+          <td>${r.umdName || "-"}</td>
+          <td>${r.sigunguName || "-"}</td>
+          <td>${fmt.format(r.m1 || 0)}</td>
+          <td>${fmt.format(r.m2 || 0)}</td>
+          <td>${fmt.format(r.m3 || 0)}</td>
+          <td>${fmtDelta(r.momDelta)}</td>
+          <td>${fmtPct(r.momRatePct)}</td>
+        </tr>
+      `);
+      renderTableRows("umdRows", html);
+    }
+
+    function renderComplex(data) {
+      const top = data.top20MoM || [];
+      makeTopBarChart(
+        "complexTopChart",
+        top.map((r) => `${r.aptName || "-"} (${(r.sigunguName || "").replace("서울 ", "").replace("인천 ", "")})`),
+        top.map((r) => Number(r.momRatePct || 0)),
+        "전월대비 증가율"
+      );
+      const tableRows = data.recent3mTable || [];
+      const html = tableRows.map((r) => `
+        <tr>
+          <td>${r.aptName || "-"}</td>
+          <td>${r.sigunguName || "-"}</td>
+          <td>${r.umdName || "-"}</td>
+          <td>${fmt.format(r.m1 || 0)}</td>
+          <td>${fmt.format(r.m2 || 0)}</td>
+          <td>${fmt.format(r.m3 || 0)}</td>
+          <td>${fmtDelta(r.momDelta)}</td>
+          <td>${fmtPct(r.momRatePct)}</td>
+        </tr>
+      `);
+      renderTableRows("complexRows", html);
+      document.getElementById("complexFoot").textContent =
+        `현재 테이블 행 수: ${tableRows.length.toLocaleString("ko-KR")}개`;
+    }
+
+    function bindTabs() {
+      const buttons = Array.from(document.querySelectorAll("#menuTabs button"));
+      const views = Array.from(document.querySelectorAll(".view"));
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          buttons.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const tab = btn.dataset.tab;
+          views.forEach((v) => {
+            v.classList.toggle("active", v.dataset.view === tab);
+          });
+        });
       });
     }
 
     async function load() {
-      const errorBox = document.getElementById("errorBox");
-      try {
-        const res = await fetch(`./data/dashboard.json?t=${Date.now()}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+      bindTabs();
+      const res = await fetch(`./data/dashboard.json?t=${Date.now()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const s = data.summary || {};
 
-        const s = data.summary || {};
-        const generated = s.generatedAt ? new Date(s.generatedAt) : null;
-        document.getElementById("updatedAt").textContent = generated
-          ? `최근 업데이트: ${generated.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} (KST)`
-          : "최근 업데이트 정보 없음";
-        document.getElementById("tradeCount").textContent = fmt.format(s.tradeCount || 0);
-        document.getElementById("rentCount").textContent = fmt.format(s.rentCount || 0);
-        document.getElementById("regionCount").textContent = fmt.format(s.regionCount || 0);
-        document.getElementById("months").textContent = (s.months || []).join(", ");
+      document.getElementById("updatedAt").textContent =
+        `최근 업데이트: ${new Date(s.generatedAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} (KST)`;
+      document.getElementById("tradeCount").textContent = fmt.format(s.tradeCount || 0);
+      document.getElementById("rentCount").textContent = fmt.format(s.rentCount || 0);
+      document.getElementById("sigunguCount").textContent =
+        fmt.format((s.coverage && s.coverage.sigunguCount) || 0);
+      document.getElementById("umdCount").textContent =
+        fmt.format((s.coverage && s.coverage.umdCount) || 0);
+      document.getElementById("complexCount").textContent =
+        fmt.format((s.coverage && s.coverage.complexCount) || 0);
+      document.getElementById("coverageNote").textContent =
+        `현재 샘플 범위: ${((s.coverage && s.coverage.sidoNames) || []).join(", ")} / ` +
+        `최근 3개월 기준: ${(s.recent3MonthLabels || []).join(", ")}`;
 
-        appendRows(
-          "regionRows",
-          data.regions || [],
-          (r) => [
-            r.regionName || r.regionCode || "-",
-            fmt.format(r.tradeCount || 0),
-            fmt.format(r.jeonseCount || 0),
-            fmtManwon(r.medianTradeManwon),
-            fmtManwon(r.medianJeonseDepositManwon),
-            fmtPct(r.jeonseRatioPct),
-          ],
-          80
-        );
-
-        appendRows(
-          "ratioRows",
-          (data.rankings && data.rankings.topJeonseRatio) || [],
-          (r) => [
-            r.regionName || r.regionCode || "-",
-            fmtPct(r.jeonseRatioPct),
-            fmt.format(r.tradeCount || 0),
-            fmt.format(r.jeonseCount || 0),
-            fmtManwon(r.medianTradeManwon),
-          ],
-          30
-        );
-
-        appendRows(
-          "latestTradeRows",
-          (data.latest && data.latest.trade) || [],
-          (r) => [
-            r.date || "-",
-            r.regionName || r.regionCode || "-",
-            r.aptNm || "-",
-            r.excluUseAr ? `${Number(r.excluUseAr).toFixed(2)}㎡` : "-",
-            fmtManwon(r.amountManwon),
-          ],
-          20
-        );
-      } catch (err) {
-        errorBox.style.display = "block";
-        errorBox.textContent = `대시보드 데이터 로딩 실패: ${err.message}`;
-      }
+      setRecentMonthHeaders(s);
+      renderNationalTrend((data.national || {}).trend3y || {});
+      renderNationalTable((data.national || {}).recent3mBySido || []);
+      renderSigungu(data.sigungu || {});
+      renderUmd(data.umd || {});
+      renderComplex(data.complex || {});
     }
 
-    load();
+    load().catch((err) => {
+      const el = document.getElementById("coverageNote");
+      el.style.color = "#c0392b";
+      el.style.background = "#fff2eb";
+      el.style.borderColor = "#ffd6bf";
+      el.textContent = `대시보드 로딩 실패: ${err.message}`;
+    });
   </script>
 </body>
 </html>

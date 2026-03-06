@@ -6,9 +6,9 @@ on:
       months:
         description: "최근 몇 개월 수집할지"
         required: false
-        default: "2"
+        default: "12"
   schedule:
-    # 06:26 KST (UTC 21:26). 정각 혼잡을 피하기 위해 26분에 실행.
+    # 06:26 KST (UTC 21:26), avoid hourly spike.
     - cron: "26 21 * * *"
 
 permissions:
@@ -34,10 +34,10 @@ jobs:
         env:
           DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
         run: |
-          MONTHS="${{ github.event.inputs.months || '2' }}"
+          MONTHS="${{ github.event.inputs.months || '12' }}"
           python scripts/fetch_rtms.py \
             --months "${MONTHS}" \
-            --lawd-codes-file config/lawd_codes_seoul.csv \
+            --lawd-codes-file config/lawd_codes_seoul_incheon.csv \
             --output .tmp/raw_rtms.json
 
       - name: Build dashboard JSON
@@ -45,7 +45,7 @@ jobs:
           python scripts/build_dashboard_data.py \
             --input .tmp/raw_rtms.json \
             --output docs/data/dashboard.json \
-            --min-ratio-count 5
+            --top-n 20
 
       - name: Commit and push if changed
         run: |
