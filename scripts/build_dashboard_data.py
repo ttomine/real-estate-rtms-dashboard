@@ -162,9 +162,7 @@ def sort_recent_table(rows: list[dict]) -> list[dict]:
 
 def top_growth_rows(rows: list[dict], top_n: int) -> list[dict]:
     valid = [r for r in rows if r.get("momRatePct") is not None]
-    positive = [r for r in valid if int(r.get("momDelta", 0)) > 0]
-    target = positive if positive else valid
-    target.sort(
+    valid.sort(
         key=lambda r: (
             float(r["momRatePct"]),
             int(r.get("momDelta", 0)),
@@ -172,7 +170,7 @@ def top_growth_rows(rows: list[dict], top_n: int) -> list[dict]:
         ),
         reverse=True,
     )
-    return target[:top_n]
+    return valid[:top_n]
 
 
 def build_national_trend(national_months: dict[str, int]) -> dict:
