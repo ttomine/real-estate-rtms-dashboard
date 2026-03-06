@@ -1,0 +1,67 @@
+name: Update Dashboard Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      months:
+        description: "최근 몇 개월 수집할지"
+        required: false
+        default: "2"
+  schedule:
+    # 06:26 KST (UTC 21:26). 정각 혼잡을 피하기 위해 26분에 실행.
+    - cron: "26 21 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-dashboard-data
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fetch trade/rent data
+        env:
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+        run: |
+          MONTHS="${{ github.event.inputs.months || '2' }}"
+          python scripts/fetch_rtms.py \
+            --months "${MONTHS}" \
+            --lawd-codes-file config/lawd_codes_seoul.csv \
+            --output .tmp/raw_rtms.json
+
+      - name: Build dashboard JSON
+        run: |
+          python scripts/build_dashboard_data.py \
+            --input .tmp/raw_rtms.json \
+            --output docs/data/dashboard.json \
+            --min-ratio-count 5
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/dashboard.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: update dashboard data"
+          git push
+
+      - name: Send Telegram summary (optional)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/send_telegram_summary.py --input docs/data/dashboard.json

@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>실거래 분석 대시보드 (MVP)</title>
+  <meta name="description" content="아파트 매매/전세 실거래 비교 지표 대시보드" />
+  <style>
+    :root {
+      --bg: #f6f9fc;
+      --surface: #ffffff;
+      --ink: #122433;
+      --muted: #62788e;
+      --line: #d6e1ea;
+      --accent: #005f73;
+      --accent-2: #0a9396;
+      --warn: #bb3e03;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -20%, #d9eef2 0%, transparent 60%),
+        radial-gradient(1000px 500px at 110% 10%, #e8f3d5 0%, transparent 50%),
+        var(--bg);
+    }
+    .wrap {
+      width: min(1120px, 92vw);
+      margin: 24px auto 64px;
+    }
+    .hero {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      color: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(5, 40, 60, 0.2);
+    }
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 34px);
+      letter-spacing: -0.02em;
+    }
+    .hero p {
+      margin: 10px 0 0;
+      opacity: 0.92;
+    }
+    .grid {
+      margin-top: 18px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 5px 14px rgba(17, 28, 40, 0.05);
+    }
+    .label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .value {
+      font-weight: 800;
+      font-size: 24px;
+      letter-spacing: -0.02em;
+    }
+    .section {
+      margin-top: 26px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 5px 14px rgba(17, 28, 40, 0.05);
+    }
+    .section h2 {
+      margin: 0;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      font-size: 18px;
+      background: #f9fcfe;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 720px;
+    }
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #edf3f7;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    tbody tr:hover { background: #f7fbff; }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 12px 16px;
+      line-height: 1.5;
+    }
+    .error {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #fff2eb;
+      color: var(--warn);
+      border: 1px solid #ffd5bf;
+      display: none;
+    }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>아파트 매매·전세 실거래 비교 대시보드</h1>
+      <p id="updatedAt">데이터를 불러오는 중...</p>
+    </section>
+
+    <section class="grid">
+      <article class="card"><div class="label">매매 거래 수</div><div class="value" id="tradeCount">-</div></article>
+      <article class="card"><div class="label">전월세 거래 수</div><div class="value" id="rentCount">-</div></article>
+      <article class="card"><div class="label">비교 지역 수</div><div class="value" id="regionCount">-</div></article>
+      <article class="card"><div class="label">수집 기간(월)</div><div class="value" id="months">-</div></article>
+    </section>
+
+    <div class="error" id="errorBox"></div>
+
+    <section class="section">
+      <h2>지역 비교(매매/전세)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>지역</th>
+              <th>매매건수</th>
+              <th>전세건수</th>
+              <th>매매 중앙값</th>
+              <th>전세 중앙값</th>
+              <th>전세가율</th>
+            </tr>
+          </thead>
+          <tbody id="regionRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>전세가율 상위(표본충분 지역)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>지역</th>
+              <th>전세가율</th>
+              <th>매매건수</th>
+              <th>전세건수</th>
+              <th>매매 중앙값</th>
+            </tr>
+          </thead>
+          <tbody id="ratioRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>최신 매매 체결(상위 20)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>체결일</th>
+              <th>지역</th>
+              <th>단지명</th>
+              <th>전용면적</th>
+              <th>거래금액</th>
+            </tr>
+          </thead>
+          <tbody id="latestTradeRows"></tbody>
+        </table>
+      </div>
+      <div class="hint">단위: 금액은 만원 기준이며, 화면에서는 억/만원으로 함께 표시됩니다.</div>
+    </section>
+  </main>
+
+  <script>
+    const fmt = new Intl.NumberFormat("ko-KR");
+
+    function fmtManwon(v) {
+      if (v === null || v === undefined || Number.isNaN(v)) return "-";
+      const eok = (Number(v) / 10000);
+      return `${eok.toFixed(2)}억 (${fmt.format(Math.round(v))}만원)`;
+    }
+
+    function fmtPct(v) {
+      if (v === null || v === undefined || Number.isNaN(v)) return "-";
+      return `${Number(v).toFixed(1)}%`;
+    }
+
+    function cell(text) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      return td;
+    }
+
+    function appendRows(targetId, rows, mapper, maxRows = 20) {
+      const target = document.getElementById(targetId);
+      target.innerHTML = "";
+      rows.slice(0, maxRows).forEach((r) => {
+        const tr = document.createElement("tr");
+        mapper(r).forEach((txt) => tr.appendChild(cell(txt)));
+        target.appendChild(tr);
+      });
+    }
+
+    async function load() {
+      const errorBox = document.getElementById("errorBox");
+      try {
+        const res = await fetch(`./data/dashboard.json?t=${Date.now()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        const s = data.summary || {};
+        const generated = s.generatedAt ? new Date(s.generatedAt) : null;
+        document.getElementById("updatedAt").textContent = generated
+          ? `최근 업데이트: ${generated.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} (KST)`
+          : "최근 업데이트 정보 없음";
+        document.getElementById("tradeCount").textContent = fmt.format(s.tradeCount || 0);
+        document.getElementById("rentCount").textContent = fmt.format(s.rentCount || 0);
+        document.getElementById("regionCount").textContent = fmt.format(s.regionCount || 0);
+        document.getElementById("months").textContent = (s.months || []).join(", ");
+
+        appendRows(
+          "regionRows",
+          data.regions || [],
+          (r) => [
+            r.regionName || r.regionCode || "-",
+            fmt.format(r.tradeCount || 0),
+            fmt.format(r.jeonseCount || 0),
+            fmtManwon(r.medianTradeManwon),
+            fmtManwon(r.medianJeonseDepositManwon),
+            fmtPct(r.jeonseRatioPct),
+          ],
+          80
+        );
+
+        appendRows(
+          "ratioRows",
+          (data.rankings && data.rankings.topJeonseRatio) || [],
+          (r) => [
+            r.regionName || r.regionCode || "-",
+            fmtPct(r.jeonseRatioPct),
+            fmt.format(r.tradeCount || 0),
+            fmt.format(r.jeonseCount || 0),
+            fmtManwon(r.medianTradeManwon),
+          ],
+          30
+        );
+
+        appendRows(
+          "latestTradeRows",
+          (data.latest && data.latest.trade) || [],
+          (r) => [
+            r.date || "-",
+            r.regionName || r.regionCode || "-",
+            r.aptNm || "-",
+            r.excluUseAr ? `${Number(r.excluUseAr).toFixed(2)}㎡` : "-",
+            fmtManwon(r.amountManwon),
+          ],
+          20
+        );
+      } catch (err) {
+        errorBox.style.display = "block";
+        errorBox.textContent = `대시보드 데이터 로딩 실패: ${err.message}`;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
